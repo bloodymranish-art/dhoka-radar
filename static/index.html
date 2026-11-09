@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dhokha Radar</title>
+<style>
+:root{--bg:#0d0f14;--card:#171a22;--tx:#e8eaf0;--mut:#8b93a7;--g:#2ecc71;--y:#f5b942;--r:#ff4d5e}
+@media(prefers-color-scheme:light){:root{--bg:#f4f5f8;--card:#fff;--tx:#14161c;--mut:#5d6578}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,sans-serif}
+main{max-width:640px;margin:0 auto;padding:20px 16px 60px}
+h1{margin:8px 0 2px;font-size:28px}h1 span{color:var(--r)}p.sub{color:var(--mut);margin:0 0 16px}
+textarea{width:100%;min-height:130px;padding:12px;border-radius:12px;border:1px solid #2a2f3d;background:var(--card);color:var(--tx);font:inherit;resize:vertical}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.chip{font-size:13px;padding:5px 10px;border-radius:99px;background:var(--card);border:1px solid #2a2f3d;color:var(--mut);cursor:pointer}
+button.go{width:100%;padding:14px;border:0;border-radius:12px;background:var(--r);color:#fff;font-size:17px;font-weight:700;cursor:pointer}
+button.go:disabled{opacity:.6}
+.card{background:var(--card);border-radius:14px;padding:16px;margin-top:16px}
+.meter{height:14px;border-radius:99px;background:#2a2f3d;overflow:hidden}
+.meter i{display:block;height:100%;width:0;transition:width .7s,background .7s}
+.verdict{font-size:26px;font-weight:800;margin:10px 0 2px}
+ul{padding-left:18px;margin:6px 0}li{margin:4px 0}
+.mut{color:var(--mut);font-size:13px}.say{border-left:3px solid var(--r);padding-left:10px;font-style:italic}
+</style></head><body><main>
+<h1>Dhokha <span>Radar</span> 📡</h1>
+<p class="sub">Suspicious SMS / WhatsApp / UPI message? Paste karo. Pehle dhokha pakdo, phir paisa gawao.</p>
+<textarea id="t" placeholder="Paste the message here..."></textarea>
+<div class="chips" id="chips"></div>
+<button class="go" id="b">Scan karo</button>
+<div id="out"></div>
+</main>
+<script>
+const S=[
+["KYC","Dear customer your SBI account will be blocked today. Update KYC urgently: http://sbi-kyc-update.xyz/login"],
+["Refund","Sir galti se 5000 aapke account me aa gaya, please wapas bhej do. Refund ke liye UPI PIN dalo to receive."],
+["Job","Part time job! Like YouTube videos and earn Rs 3000 daily. Join Telegram now, limited slots."],
+["Digital arrest","This is CBI. A parcel in your name has drugs. You are under digital arrest, stay on video call."],
+["Normal","Hey, dinner at 8? I'll send you the money via UPI tomorrow."]];
+const $=id=>document.getElementById(id),esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+S.forEach(([n,m])=>{const c=document.createElement("span");c.className="chip";c.textContent=n;c.onclick=()=>{$("t").value=m};$("chips").append(c)});
+$("b").onclick=async()=>{
+  const text=$("t").value.trim();if(!text)return;
+  $("b").disabled=true;$("b").textContent="Scanning...";
+  try{
+    const r=await fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});
+    const d=await r.json();if(!r.ok)throw new Error(d.detail||"error");
+    const col=d.score>=60?"var(--r)":d.score>=30?"var(--y)":"var(--g)";
+    const sig=d.signals.map(s=>`<li>${esc(s.why)} <span class="mut">(+${s.weight})</span></li>`).join("")||"<li>Kuch suspicious nahi mila.</li>";
+    const ai=d.ai||{};
+    $("out").innerHTML=`<div class="card"><div class="meter"><i id="m" style="background:${col}"></i></div>
+    <div class="verdict" style="color:${col}">${d.verdict} · ${d.score}/100</div>
+    <b>Red flags</b><ul>${sig}</ul></div>
+    <div class="card"><p>${esc(ai.explain||"")}</p>
+    <b>Ab kya karo</b><ul>${(ai.do_now||[]).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
+    ${ai.reply_to_scammer?`<p class="say">"${esc(ai.reply_to_scammer)}"</p>`:""}
+    <p class="mut">Explained by: ${esc(ai.source||"")} · Fraud hua? Call 1930 or cybercrime.gov.in</p></div>`;
+    requestAnimationFrame(()=>$("m").style.width=d.score+"%");
+  }catch(e){$("out").innerHTML=`<div class="card">${esc(e.message)}</div>`}
+  $("b").disabled=false;$("b").textContent="Scan karo";
+};
+</script></body></html>

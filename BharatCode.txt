@@ -1,0 +1,9 @@
+Project: Dhokha Radar
+Author: Anish Yadav (github.com/bloodymranish-art)
+Category: Everyday assistance / Chatbots & communities
+What it does: Paste a suspicious SMS / WhatsApp / UPI message and get a scam score,
+the exact red flags, and a Hinglish explanation + action steps.
+How BharatCode is used: A deterministic rule engine scores the message first; the
+BharatCode model API then writes the Hinglish explanation, next steps and a
+safe reply line (app/llm.py). Without an API key it falls back to rule-based text.
+Run: pip install -r requirements.txt && uvicorn app.main:app --reload
